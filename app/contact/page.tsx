@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react'
 import Toast from '@/components/ui/Toast'
 
-function generateCaptcha() {
+type Captcha = {
+  question: string
+  answer: string
+}
+
+function generateCaptcha(): Captcha {
   const a = Math.floor(Math.random() * 9) + 1
   const b = Math.floor(Math.random() * 9) + 1
   const isAdd = Math.random() > 0.5
@@ -14,35 +19,41 @@ function generateCaptcha() {
   }
 }
 
+const inputClass =
+  'w-full rounded-md bg-transparent border border-white/15 px-4 py-3 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-white/35 transition'
+
 export default function ContactPage() {
   const [loading, setLoading] = useState(false)
+  const [captchaInput, setCaptchaInput] = useState('')
+  const [captcha, setCaptcha] = useState<Captcha | null>(null)
   const [toast, setToast] = useState<{
     message: string
     type: 'success' | 'error'
   } | null>(null)
 
-  const [captcha, setCaptcha] = useState('')
-  const [captchaData, setCaptchaData] = useState(generateCaptcha())
+  useEffect(() => {
+    setCaptcha(generateCaptcha())
+  }, [])
 
   useEffect(() => {
-    if (toast) {
-      const t = setTimeout(() => setToast(null), 3000)
-      return () => clearTimeout(t)
-    }
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(t)
   }, [toast])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!captcha) return
+
     setLoading(true)
 
     const form = e.currentTarget
     const formData = new FormData(form)
 
-    // captcha check (client)
-    if (captcha.trim() !== captchaData.answer) {
+    if (captchaInput.trim() !== captcha.answer) {
       setToast({ message: 'Captcha failed. Try again.', type: 'error' })
-      setCaptcha('')
-      setCaptchaData(generateCaptcha())
+      setCaptchaInput('')
+      setCaptcha(generateCaptcha())
       setLoading(false)
       return
     }
@@ -54,26 +65,22 @@ export default function ContactPage() {
         name: formData.get('name'),
         email: formData.get('email'),
         message: formData.get('message'),
-        company: formData.get('company'), // honeypot
-        captcha: captchaData.answer,
+        company: formData.get('company'),
       }),
     })
 
     setLoading(false)
-    setCaptcha('')
-    setCaptchaData(generateCaptcha())
+    setCaptchaInput('')
+    setCaptcha(generateCaptcha())
 
     if (res.ok) {
       setToast({
-        message: 'Message sent successfully!',
+        message: 'Message sent successfully. I’ll get back to you soon!',
         type: 'success',
       })
       form.reset()
     } else {
-      setToast({
-        message: 'Something went wrong. Please try again.',
-        type: 'error',
-      })
+      setToast({ message: 'Something went wrong. Please try again.', type: 'error' })
     }
   }
 
@@ -86,19 +93,8 @@ export default function ContactPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* NAME + EMAIL */}
         <div className="grid md:grid-cols-2 gap-4">
-          <input
-            name="name"
-            required
-            placeholder="Name"
-            className="input"
-          />
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="Email"
-            className="input"
-          />
+          <input name="name" required placeholder="Name" className={inputClass} />
+          <input name="email" type="email" required placeholder="Email" className={inputClass} />
         </div>
 
         {/* HONEYPOT */}
@@ -113,36 +109,33 @@ export default function ContactPage() {
         {/* MESSAGE */}
         <textarea
           name="message"
-          rows={6}
           required
-          placeholder="Drop a note with feedback, opportunities, or just say hi."
-          className="input resize-none"
+          rows={6}
+          placeholder="Drop a note with any website feedback or career opportunities, or just say hi. Where are you from? 😊"
+          className={`${inputClass} resize-none`}
         />
 
         {/* CAPTCHA */}
-        <input
-          required
-          value={captcha}
-          onChange={(e) => setCaptcha(e.target.value)}
-          placeholder={captchaData.question}
-          className="input"
-        />
+        {captcha && (
+          <input
+            required
+            value={captchaInput}
+            onChange={(e) => setCaptchaInput(e.target.value)}
+            placeholder={captcha.question}
+            className={inputClass}
+          />
+        )}
 
         {/* SUBMIT */}
         <button
           disabled={loading}
-          className="
-            w-full py-3 rounded-md
-            bg-white text-black font-medium
-            hover:bg-slate-200 transition
-            disabled:opacity-60
-          "
+          className="w-full rounded-md bg-white text-black py-3 font-medium hover:bg-slate-200 transition disabled:opacity-60"
         >
           {loading ? 'Sending…' : 'Send Message →'}
         </button>
 
         <p className="text-xs text-slate-400">
-          By submitting, you agree to the{' '}
+          By submitting this form, you agree to the{' '}
           <a href="/privacy" className="underline hover:text-white">
             privacy policy
           </a>
@@ -150,7 +143,6 @@ export default function ContactPage() {
         </p>
       </form>
 
-      {/* TOAST */}
       {toast && (
         <Toast
           message={toast.message}
