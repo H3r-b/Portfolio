@@ -4,10 +4,11 @@ export default function Footer() {
   return (
     <footer className="mt-24 border-t border-white/10">
       <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between text-sm text-slate-400">
-        
+
         {/* LEFT */}
-        <div>
-          © 2026{' '}
+        <div className="flex items-center gap-2">
+          <span>© 2026</span>
+
           <a
             href="https://herbert-george.com"
             target="_blank"
@@ -16,6 +17,16 @@ export default function Footer() {
           >
             herbert-george.com
           </a>
+
+          <span>|</span>
+
+          <a
+            href="/privacy"
+            className="font-semibold hover:text-white transition"
+          >
+            privacy?
+          </a>
+
         </div>
 
         {/* RIGHT */}
