@@ -1,28 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Toast from '@/components/ui/Toast'
+
+function generateCaptcha() {
+  const a = Math.floor(Math.random() * 9) + 1
+  const b = Math.floor(Math.random() * 9) + 1
+  const isAdd = Math.random() > 0.5
+
+  return {
+    question: `What is ${a} ${isAdd ? '+' : '-'} ${b}?`,
+    answer: String(isAdd ? a + b : a - b),
+  }
+}
 
 export default function ContactPage() {
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
-  const [captcha, setCaptcha] = useState('')
+  const [toast, setToast] = useState<{
+    message: string
+    type: 'success' | 'error'
+  } | null>(null)
 
-  const CAPTCHA_ANSWER = '7' // 3 + 4
+  const [captcha, setCaptcha] = useState('')
+  const [captchaData, setCaptchaData] = useState(generateCaptcha())
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 3000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
-    setError('')
-    setSuccess(false)
 
     const form = e.currentTarget
     const formData = new FormData(form)
 
-    // Simple captcha validation (client-side)
-    if (captcha !== CAPTCHA_ANSWER) {
+    // captcha check (client)
+    if (captcha.trim() !== captchaData.answer) {
+      setToast({ message: 'Captcha failed. Try again.', type: 'error' })
+      setCaptcha('')
+      setCaptchaData(generateCaptcha())
       setLoading(false)
-      setError('Captcha failed. Please try again.')
       return
     }
 
@@ -34,25 +55,30 @@ export default function ContactPage() {
         email: formData.get('email'),
         message: formData.get('message'),
         company: formData.get('company'), // honeypot
-        captcha,
+        captcha: captchaData.answer,
       }),
     })
 
     setLoading(false)
+    setCaptcha('')
+    setCaptchaData(generateCaptcha())
 
     if (res.ok) {
-      setSuccess(true)
+      setToast({
+        message: 'Message sent successfully!',
+        type: 'success',
+      })
       form.reset()
-      setCaptcha('')
     } else {
-      const data = await res.json()
-      setError(data.error || 'Something went wrong. Please try again.')
+      setToast({
+        message: 'Something went wrong. Please try again.',
+        type: 'error',
+      })
     }
   }
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-20">
-      {/* TITLE */}
       <h1 className="text-3xl md:text-4xl font-bold text-white mb-10">
         contact me.
       </h1>
@@ -64,19 +90,18 @@ export default function ContactPage() {
             name="name"
             required
             placeholder="Name"
-            className="w-full rounded-md bg-transparent border border-white/10 px-4 py-3 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-white/30"
+            className="input"
           />
-
           <input
             name="email"
             type="email"
             required
             placeholder="Email"
-            className="w-full rounded-md bg-transparent border border-white/10 px-4 py-3 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-white/30"
+            className="input"
           />
         </div>
 
-        {/* HONEYPOT (HIDDEN) */}
+        {/* HONEYPOT */}
         <input
           type="text"
           name="company"
@@ -88,10 +113,10 @@ export default function ContactPage() {
         {/* MESSAGE */}
         <textarea
           name="message"
-          required
           rows={6}
-          placeholder="Drop a note with any website feedback or career opportunities, or just say hi. Where are you from? 😊"
-          className="w-full rounded-md bg-transparent border border-white/10 px-4 py-3 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-white/30 resize-none"
+          required
+          placeholder="Drop a note with feedback, opportunities, or just say hi."
+          className="input resize-none"
         />
 
         {/* CAPTCHA */}
@@ -99,51 +124,40 @@ export default function ContactPage() {
           required
           value={captcha}
           onChange={(e) => setCaptcha(e.target.value)}
-          placeholder="What is 3 + 4?"
-          className="w-full rounded-md bg-transparent border border-white/10 px-4 py-3 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-white/30"
+          placeholder={captchaData.question}
+          className="input"
         />
 
         {/* SUBMIT */}
         <button
           disabled={loading}
           className="
-            w-full rounded-md
-            bg-white text-black
-            py-3 font-medium
-            hover:bg-slate-200
-            transition
+            w-full py-3 rounded-md
+            bg-white text-black font-medium
+            hover:bg-slate-200 transition
             disabled:opacity-60
           "
         >
           {loading ? 'Sending…' : 'Send Message →'}
         </button>
 
-        {/* FOOTER TEXT */}
         <p className="text-xs text-slate-400">
-          By submitting this form, you agree to the{' '}
-          <a
-            href="/privacy"
-            className="underline hover:text-white transition"
-          >
+          By submitting, you agree to the{' '}
+          <a href="/privacy" className="underline hover:text-white">
             privacy policy
           </a>
           .
         </p>
-
-        {/* SUCCESS */}
-        {success && (
-          <p className="text-green-400 text-sm">
-            Message sent successfully. I’ll get back to you soon!
-          </p>
-        )}
-
-        {/* ERROR */}
-        {error && (
-          <p className="text-red-400 text-sm">
-            {error}
-          </p>
-        )}
       </form>
+
+      {/* TOAST */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </main>
   )
 }
