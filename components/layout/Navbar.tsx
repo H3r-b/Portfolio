@@ -10,9 +10,6 @@ export default function Navbar() {
             projects
           </a>
           <a className="text-slate-400 hover:text-white transition-colors">
-            blog
-          </a>
-          <a className="text-slate-400 hover:text-white transition-colors">
             contact
           </a>
         </nav>
