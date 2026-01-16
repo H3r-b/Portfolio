@@ -1,4 +1,6 @@
 import './globals.css'
+import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 
 export default function RootLayout({
   children,
@@ -7,11 +9,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="
-        bg-[#0b0f1a] text-slate-100
-        transition-colors duration-300
-      ">
+      <body className="bg-[#0b0f1a] text-slate-100 transition-colors duration-300">
+        <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   )
